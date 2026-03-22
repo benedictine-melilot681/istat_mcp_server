@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "istat": {
+      "command": "C:\\Users\\patru\\Dropbox\\mcp\\istat_mcp_server\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "istat_mcp_server"],
+      "cwd": "C:\\Users\\patru\\Dropbox\\mcp\\istat_mcp_server"
+    }
+  }
+}
