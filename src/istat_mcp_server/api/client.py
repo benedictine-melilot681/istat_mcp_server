@@ -176,10 +176,11 @@ class ApiClient:
             ) from e
         except httpx.HTTPStatusError as e:
             elapsed = time.time() - start_time
+            response_text = e.response.text
             logger.error(f'✗ HTTP ERROR {e.response.status_code} for {url} after {elapsed:.3f}s')
-            logger.error(f'  Response: {e.response.text[:200]}...' if len(e.response.text) > 200 else f'  Response: {e.response.text}')
+            logger.error(f'  Response: {response_text[:200]}...' if len(response_text) > 200 else f'  Response: {response_text}')
             # ISTAT returns HTTP 404 with body "NoRecordsFound" when no data matches the filters
-            if e.response.status_code == 404 and 'NoRecordsFound' in e.response.text:
+            if e.response.status_code == 404 and 'NoRecordsFound' in response_text:
                 raise ApiError(
                     'No data found for the requested filters/period. '
                     'Try using a different time period or broader filters. '

@@ -3,7 +3,17 @@
 import pytest
 import httpx
 
-from istat_mcp_server.api.client import ApiClient, ApiError
+from istat_mcp_server.api.client import ApiClient, ApiError, RateLimiter
+
+
+def _make_api_client(dummy_http_client):
+    """Create a minimal ApiClient instance for testing, bypassing __init__."""
+    client = ApiClient.__new__(ApiClient)
+    client._base_url = "https://example.com"
+    client._timeout = 30.0
+    client._rate_limiter = RateLimiter(max_calls=100, time_window=1.0)
+    client._client = dummy_http_client
+    return client
 
 
 @pytest.mark.asyncio
@@ -20,11 +30,7 @@ async def test_404_no_records_found_returns_helpful_message():
                 response=response,
             )
 
-    # Create an ApiClient instance without relying on its __init__ signature.
-    client = ApiClient.__new__(ApiClient)
-    # Provide minimal attributes _get is likely to use.
-    client._base_url = "https://example.com"
-    client._client = DummyClientNoRecords()
+    client = _make_api_client(DummyClientNoRecords())
 
     with pytest.raises(ApiError) as exc_info:
         await client._get("/test")
@@ -49,9 +55,7 @@ async def test_generic_404_preserves_original_message():
                 response=response,
             )
 
-    client = ApiClient.__new__(ApiClient)
-    client._base_url = "https://example.com"
-    client._client = DummyClientGeneric404()
+    client = _make_api_client(DummyClientGeneric404())
 
     with pytest.raises(ApiError) as exc_info:
         await client._get("/test")
