@@ -10,6 +10,7 @@ compatibility: Requires the istat MCP server to be running (provides 7 tools for
 metadata:
   author: ondata
   version: "1.0"
+  repository: https://github.com/ondata/istat_mcp_server
 ---
 
 # ISTAT MCP Server - Workflow Guide
