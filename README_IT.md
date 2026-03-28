@@ -362,9 +362,35 @@ Il file log mostra:
 
 Usa il tool `get_cache_diagnostics` in Claude Desktop per ispezionare lo stato cache in tempo reale.
 
-## API rate limiting
+## Note sull'uso dell'API SDMX
+
+### Rate limiting
 
 La API SDMX di ISTAT e limitata a 3 chiamate al minuto. Il server gestisce automaticamente questo vincolo mettendo in coda le richieste quando il limite e raggiunto.
+
+### Header Accept
+
+L'API SDMX di ISTAT richiede header `Accept` specifici a seconda dell'endpoint e del formato desiderato. Usare un generico `application/json` può restituire risposte vuote.
+
+**Dati (CSV):**
+
+```bash
+curl -H "Accept: application/vnd.sdmx.data+csv;version=1.0.0" \
+  "https://esploradati.istat.it/SDMXWS/rest/data/{dataflow_id}/ALL/"
+```
+
+**Struttura/Vincoli (JSON):**
+
+```bash
+curl -H "Accept: application/vnd.sdmx.structure+json; version=1.0" \
+  "https://esploradati.istat.it/SDMXWS/rest/availableconstraint/{dataflow_id}/all/all?mode=available"
+```
+
+**Struttura/Vincoli (XML, default):**
+
+```bash
+curl "https://esploradati.istat.it/SDMXWS/rest/availableconstraint/{dataflow_id}/all/all?mode=available"
+```
 
 ## Licenza
 
