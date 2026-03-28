@@ -259,6 +259,7 @@ Contributions are welcome! Please open an issue or pull request.
 ## Author
 
 - Vincenzo Patruno: https://www.linkedin.com/in/vincenzopatruno/
+- Andrea Borruso: https://www.linkedin.com/in/andreaborruso
 
 ## References
 
