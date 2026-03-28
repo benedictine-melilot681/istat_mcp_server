@@ -60,9 +60,22 @@ class GetDataInput(BaseModel):
     @field_validator('dimension_filters', mode='before')
     @classmethod
     def coerce_dimension_filters(cls, v: object) -> object:
+        # Accept either a dict directly, or a JSON string that decodes to a dict.
         if isinstance(v, str):
-            return json.loads(v)
-        return v
+            try:
+                parsed = json.loads(v)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "dimension_filters must be a valid JSON object string"
+                ) from exc
+            if not isinstance(parsed, dict):
+                raise ValueError("dimension_filters must be a JSON object")
+            return parsed
+        if v is None or isinstance(v, dict):
+            return v
+        raise ValueError(
+            "dimension_filters must be a mapping or a JSON object string"
+        )
 
     start_period: str | None = Field(
         None, description="Start period for time filter (e.g., '2024-11-01')"
