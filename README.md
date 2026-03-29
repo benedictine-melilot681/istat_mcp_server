@@ -6,11 +6,11 @@ MCP server for accessing Italian statistical data from the ISTAT SDMX API.
 
 ## Overview
 
-This Model Context Protocol (MCP) server provides Claude Desktop with access to Italian statistical data from ISTAT (Istituto Nazionale di Statistica) through the SDMX REST API. It implements a two-layer caching mechanism to minimize API calls and provides seven tools for discovering, querying, and retrieving statistical data.
+This Model Context Protocol (MCP) server provides Claude Desktop with access to Italian statistical data from ISTAT (Istituto Nazionale di Statistica) through the SDMX REST API. It implements a two-layer caching mechanism to minimize API calls and provides eight tools for discovering, querying, and retrieving statistical data.
 
 ## Features
 
-- **7 MCP Tools** for data discovery and retrieval:
+- **8 MCP Tools** for data discovery and retrieval:
   - `discover_dataflows` - Find available datasets by keywords (with blacklist filtering)
   - `get_structure` - Get dimension definitions and codelists for a datastructure ID
   - `get_constraints` - Get available constraint values for each dimension with descriptions (combines structure + constraints + codelist descriptions)
@@ -18,6 +18,7 @@ This Model Context Protocol (MCP) server provides Claude Desktop with access to 
   - `get_concepts` - Get semantic definitions of SDMX concepts
   - `get_data` - Fetch actual statistical data in SDMXXML format (with blacklist validation)
   - `get_cache_diagnostics` - Debug tool to inspect cache status
+  - `get_territorial_codes` - Resolve ISTAT REF_AREA codes for Italia, ripartizioni, regioni, province, and comuni
 
 - **Recommended Workflow** (simple and efficient):
   1. **Discover**: Use `discover_dataflows` to find the dataflow you're interested in
