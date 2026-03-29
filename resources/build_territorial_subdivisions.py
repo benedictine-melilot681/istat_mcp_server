@@ -2,8 +2,8 @@
 
 Sources:
 - CL_ITTER107: fetched via mcp__istat__get_codelist_description (cached in cache/cache.db)
-- ISTAT municipalities CSV: https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv
-- ISTAT capoluogo JSON: https://situas-servizi.istat.it/publish/reportspooljson?pfun=61&pdata=01/01/2048
+- unit_territoriali.csv: resources/geo/unit_territoriali.csv (mapping cod_com → NUTS3 → cod_prov → cod_reg)
+- ISTAT JSON: https://situas-servizi.istat.it/publish/reportspooljson?pfun=61&pdata=01/01/2048 (capoluogo flags)
 
 Output columns (table: territorial_subdivisions):
 - code: ISTAT territorial code (CL_ITTER107 for all levels; 6-digit numeric for comuni)
@@ -17,14 +17,13 @@ Output columns (table: territorial_subdivisions):
              COD_PROV_STORICO for province, PRO_COM_T for comuni; NULL for italia)
 
 Usage:
-    python3 resources/build_territorial_subdivisions.py <itter107_json> [comuni_csv]
+    python3 resources/build_territorial_subdivisions.py <itter107_json>
 """
 
 import csv
 import json
 import re
 import sys
-import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -56,8 +55,8 @@ IT1XX_PARENTS = {
     'IT119': 'ITG2',  # Sulcis Iglesiente -> Sardegna
 }
 
-COMUNI_CSV_URL = 'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv'
 ISTAT_DATA_URL = 'https://situas-servizi.istat.it/publish/reportspooljson?pfun=61&pdata=01/01/2048'
+UNIT_TERR_CSV = Path(__file__).parent / 'geo' / 'unit_territoriali.csv'
 
 # NUTS1 code → COD_RIP numeric string
 NUTS1_TO_COD_RIP = {'ITC': '1', 'ITD': '2', 'ITE': '3', 'ITF': '4', 'ITG': '5'}
@@ -69,21 +68,6 @@ NUTS1_TO_DEN_RIP = {
     'ITE': 'Centro',
     'ITF': 'Sud',
     'ITG': 'Isole',
-}
-
-# Sardegna: dopo la riforma del 2016 i codici comuni cambiano (090xxx → 112xxx ecc.)
-# Il JSON situas-servizi usa i nuovi codici, il CSV ISTAT quelli vecchi → nessun match automatico.
-# Mapping manuale NUTS3 → COD_PROV_STORICO per le province attualmente codificate nel JSON.
-# ITG29 (Olbia-Tempio), ITG2C (Carbonia-Iglesias), IT111 (Sud Sardegna) non presenti nel JSON → NULL.
-SARDINIA_NUTS3_TO_COD_PROV = {
-    'ITG25': '112',  # Sassari
-    'ITG26': '114',  # Nuoro
-    'ITG27': '118',  # Cagliari
-    'ITG28': '115',  # Oristano
-    'ITG2A': '116',  # Ogliastra
-    'ITG2B': '117',  # Medio Campidano
-    'IT113': '113',  # Gallura Nord-Est Sardegna
-    'IT119': '119',  # Sulcis Iglesiente
 }
 
 OUTPUT_PATH = Path(__file__).parent.parent / 'src' / 'istat_mcp_server' / 'resources' / 'istat_lookup.duckdb'
@@ -115,17 +99,40 @@ def load_itter107(path: str) -> dict[str, str]:
     return codes
 
 
-def download_comuni_csv() -> str:
-    """Download ISTAT municipalities CSV to a temp file, return path."""
-    tmp = tempfile.NamedTemporaryFile(suffix='_comuni_istat.csv', delete=False)
-    print(f'Downloading {COMUNI_CSV_URL}...')
-    urllib.request.urlretrieve(COMUNI_CSV_URL, tmp.name)
-    utf8_path = tmp.name + '_utf8.csv'
-    with open(tmp.name, encoding='latin1') as f:
-        content = f.read()
-    with open(utf8_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    return utf8_path
+def build_mappings() -> tuple[dict, dict, dict, dict]:
+    """Build all territorial mappings from unit_territoriali.csv.
+
+    Returns:
+        - comune_to_nuts3: cod_com (alfanumerico) → ITTER NUTS3
+        - storico_to_nuts3: cod_prov_storico → ITTER NUTS3
+        - name_to_cod_prov: province name → cod_prov (int string)
+        - nuts2_to_cod_reg: ITTER NUTS2 → cod_reg (int string)
+    """
+    comune_to_nuts3: dict[str, str] = {}
+    storico_to_nuts3: dict[str, str] = {}
+    name_to_cod_prov: dict[str, str] = {}
+    nuts2_to_cod_reg: dict[str, str] = {}
+
+    print(f'Reading {UNIT_TERR_CSV}...')
+    with open(UNIT_TERR_CSV, encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f, delimiter=';')
+        for row in reader:
+            cod_com = row['Codice Comune (alfanumerico)'].strip()
+            nuts3_2024 = row['Codice NUTS3 2024'].strip()
+            cod_prov = row['Codice Provincia (Storico)'].strip()
+            cod_reg = row['Codice Regione'].strip()
+            den_uts = row['Provincia/Uts'].strip()
+
+            if nuts3_2024:
+                itter = nuts2021_to_itter(nuts3_2024)
+                comune_to_nuts3[cod_com] = itter
+                storico_to_nuts3[cod_prov] = itter
+                nuts2_to_cod_reg[itter[:4]] = str(int(cod_reg))
+            if den_uts and cod_prov:
+                name_to_cod_prov[den_uts] = str(int(cod_prov))
+
+    print(f'  comuni: {len(comune_to_nuts3)} | storico: {len(storico_to_nuts3)} | prov_names: {len(name_to_cod_prov)} | reg: {len(nuts2_to_cod_reg)}')
+    return comune_to_nuts3, storico_to_nuts3, name_to_cod_prov, nuts2_to_cod_reg
 
 
 def download_istat_data() -> dict[str, dict]:
@@ -158,48 +165,15 @@ def download_istat_data() -> dict[str, dict]:
     return result
 
 
-def build_comuni_mappings(csv_path: str) -> tuple[dict, dict]:
-    """Build comune_code->ITTER_nuts3 and storico->ITTER_nuts3 mappings."""
-    comune_to_nuts3 = {}
-    storico_to_nuts3 = {}
-    with open(csv_path, encoding='utf-8') as f:
-        reader = csv.reader(f, delimiter=';')
-        next(reader)
-        for row in reader:
-            cod6 = row[15].strip().zfill(6)
-            storico = row[2].strip().zfill(3)
-            nuts3_2021 = row[22].strip()
-            if nuts3_2021:
-                itter = nuts2021_to_itter(nuts3_2021)
-                if cod6:
-                    comune_to_nuts3[cod6] = itter
-                if storico:
-                    storico_to_nuts3[storico] = itter
-    return comune_to_nuts3, storico_to_nuts3
 
-
-def build_duckdb(codes: dict, comune_to_nuts3: dict, storico_to_nuts3: dict, istat_data: dict) -> None:
+def build_duckdb(codes: dict, comune_to_nuts3: dict, storico_to_nuts3: dict,
+                 name_to_cod_prov: dict, nuts2_to_cod_reg: dict, istat_data: dict) -> None:
     """Build and write the DuckDB database."""
     # Province: standard NUTS3 + letter-suffix + IT1XX
     nuts3_codes = {k: v for k, v in codes.items() if re.match(r'^IT[A-Z][0-9]{2}$', k)}
     letter_suffix = {k: v for k, v in codes.items() if re.match(r'^IT[A-Z][0-9][A-Z]$', k)}
     it1xx = {k: v for k, v in codes.items() if re.match(r'^IT1[0-9]{2}$', k)}
     all_province_codes = {**nuts3_codes, **letter_suffix, **it1xx}
-
-    # Build nuts3 → cod_istat_prov and nuts2 → cod_istat_reg from comuni data
-    nuts3_to_cod_prov: dict[str, str] = {}
-    nuts2_to_cod_reg: dict[str, str] = {}
-    for cod6, rec in istat_data.items():
-        nuts3 = comune_to_nuts3.get(cod6) or storico_to_nuts3.get(cod6[:3])
-        if nuts3:
-            nuts3_to_cod_prov[nuts3] = rec['cod_prov']
-            nuts2_to_cod_reg[nuts3[:4]] = rec['cod_reg']
-
-    # Fallback Sardegna: riforma 2016 cambia i codici comuni (090xxx → 112xxx)
-    # il CSV usa i vecchi codici, il JSON i nuovi → nessun match automatico
-    for nuts3, cod_prov in SARDINIA_NUTS3_TO_COD_PROV.items():
-        nuts3_to_cod_prov.setdefault(nuts3, cod_prov)
-    nuts2_to_cod_reg.setdefault('ITG2', '20')  # Sardegna = COD_REG 20
 
     # Helpers: NUTS1 code → den_rip / cod_rip
     def den_rip(nuts1: str | None) -> str | None:
@@ -222,7 +196,7 @@ def build_duckdb(codes: dict, comune_to_nuts3: dict, storico_to_nuts3: dict, ist
     for k, v in all_province_codes.items():
         parent = IT1XX_PARENTS.get(k, k[:4])
         nuts1 = IT1XX_PARENTS.get(k, k)[:3]
-        rows.append((k, v, 'provincia', 3, parent, None, None, nuts3_to_cod_prov.get(k), den_rip(nuts1), cod_rip(nuts1)))
+        rows.append((k, v, 'provincia', 3, parent, None, None, name_to_cod_prov.get(v), den_rip(nuts1), cod_rip(nuts1)))
 
     no_parent = 0
     for k, v in codes.items():
@@ -275,34 +249,22 @@ def build_duckdb(codes: dict, comune_to_nuts3: dict, storico_to_nuts3: dict, ist
 
 if __name__ == '__main__':
     itter107_path = sys.argv[1] if len(sys.argv) > 1 else None
-    comuni_csv_path = sys.argv[2] if len(sys.argv) > 2 else None
 
     if not itter107_path:
-        print('Usage: python3 build_territorial_subdivisions.py <itter107_json> [comuni_csv]')
+        print('Usage: python3 build_territorial_subdivisions.py <itter107_json>')
         print('  itter107_json: MCP tool result JSON for CL_ITTER107 codelist')
-        print('  comuni_csv: ISTAT municipalities CSV (latin1); downloaded if omitted')
         sys.exit(1)
 
     print('Loading CL_ITTER107...')
     codes = load_itter107(itter107_path)
     print(f'  Loaded {len(codes)} codes')
 
-    if comuni_csv_path:
-        utf8_path = comuni_csv_path + '_utf8.csv'
-        with open(comuni_csv_path, encoding='latin1') as f:
-            content = f.read()
-        with open(utf8_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-        comuni_csv_path = utf8_path
-    else:
-        comuni_csv_path = download_comuni_csv()
+    print('Building mappings from unit_territoriali.csv...')
+    comune_to_nuts3, storico_to_nuts3, name_to_cod_prov, nuts2_to_cod_reg = build_mappings()
 
-    print('Building comuni mappings...')
-    comune_to_nuts3, storico_to_nuts3 = build_comuni_mappings(comuni_csv_path)
-    print(f'  comuni: {len(comune_to_nuts3)} | storico: {len(storico_to_nuts3)}')
-
-    print('Downloading ISTAT data...')
+    print('Downloading ISTAT data (capoluogo flags)...')
     istat_data = download_istat_data()
 
     print('Building DuckDB...')
-    build_duckdb(codes, comune_to_nuts3, storico_to_nuts3, istat_data)
+    build_duckdb(codes, comune_to_nuts3, storico_to_nuts3,
+                 name_to_cod_prov, nuts2_to_cod_reg, istat_data)
