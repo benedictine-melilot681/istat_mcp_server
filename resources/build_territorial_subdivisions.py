@@ -57,7 +57,7 @@ IT1XX_PARENTS = {
 COMUNI_CSV_URL = 'https://www.istat.it/storage/codici-unita-amministrative/Elenco-comuni-italiani.csv'
 CAPOLUOGO_JSON_URL = 'https://situas-servizi.istat.it/publish/reportspooljson?pfun=61&pdata=01/01/2048'
 
-OUTPUT_PATH = Path(__file__).parent / 'istat_lookup.duckdb'
+OUTPUT_PATH = Path(__file__).parent.parent / 'src' / 'istat_mcp_server' / 'resources' / 'istat_lookup.duckdb'
 
 
 def nuts2021_to_itter(code: str) -> str:

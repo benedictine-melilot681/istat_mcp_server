@@ -150,6 +150,15 @@ class TestRegionFilter:
         data = _parse(result)
         assert 'error' in data
 
+    async def test_region_with_provincia_level(self):
+        """level='provincia' + region='Piemonte' must return only the Piemonte province."""
+        result = await handle_get_territorial_codes({'level': 'provincia', 'region': 'Piemonte'})
+        data = _parse(result)
+        codes = [c['code'] for c in data['codes']]
+        assert 'ITC11' in codes
+        assert 'ITE43' not in codes
+        assert len(codes) == 1
+
 
 @pytest.mark.asyncio
 class TestCapoluogo:

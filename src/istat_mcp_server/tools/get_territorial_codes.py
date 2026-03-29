@@ -1,6 +1,7 @@
 """Tool: get_territorial_codes - Get ISTAT REF_AREA codes for a territorial level or place name."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -11,14 +12,27 @@ from ..utils.tool_helpers import format_json_response
 
 logger = logging.getLogger(__name__)
 
-_DB_PATH = Path(__file__).parent.parent.parent.parent / 'resources' / 'istat_lookup.duckdb'
+_DEFAULT_DB_PATH = Path(__file__).parent.parent / 'resources' / 'istat_lookup.duckdb'
+
+
+def _get_db_path() -> Path:
+    """Return the DuckDB path, honouring the ISTAT_DB_PATH env override."""
+    env_override = os.environ.get('ISTAT_DB_PATH')
+    return Path(env_override) if env_override else _DEFAULT_DB_PATH
+
 
 _VALID_LEVELS = ('italia', 'ripartizione', 'regione', 'provincia', 'comune')
 
 
 def _get_conn() -> duckdb.DuckDBPyConnection:
     """Open a read-only connection to the lookup database."""
-    return duckdb.connect(str(_DB_PATH), read_only=True)
+    db_path = _get_db_path()
+    if not db_path.exists():
+        raise FileNotFoundError(
+            f"Territorial lookup database not found at '{db_path}'. "
+            "Set the ISTAT_DB_PATH environment variable to point to the database file."
+        )
+    return duckdb.connect(str(db_path), read_only=True)
 
 
 def _rows_to_dicts(rows: list[tuple], columns: list[str]) -> list[dict]:
@@ -50,14 +64,22 @@ async def handle_get_territorial_codes(arguments: dict[str, Any]) -> list[TextCo
             'province': filter comuni by province name or code
             'capoluogo': if true, return only comuni that are capoluogo di provincia
     """
-    level = arguments.get('level', '').strip().lower()
-    name = arguments.get('name', '').strip()
-    region = arguments.get('region', '').strip()
-    province = arguments.get('province', '').strip()
+    level = arguments.get('level')
+    name = arguments.get('name')
+    region = arguments.get('region')
+    province = arguments.get('province')
     capoluogo = arguments.get('capoluogo', False)
+
+    # Coerce to expected types; reject non-string values for string params
+    level = level.strip().lower() if isinstance(level, str) else ''
+    name = name.strip() if isinstance(name, str) else ''
+    region = region.strip() if isinstance(region, str) else ''
+    province = province.strip() if isinstance(province, str) else ''
 
     if isinstance(capoluogo, str):
         capoluogo = capoluogo.lower() in ('true', '1', 'yes')
+    elif not isinstance(capoluogo, bool):
+        capoluogo = False
 
     has_filter = level or name or region or province or capoluogo
 
@@ -70,6 +92,11 @@ async def handle_get_territorial_codes(arguments: dict[str, Any]) -> list[TextCo
         return format_json_response({'error': f"Invalid level '{level}'. Valid: {list(_VALID_LEVELS)}"})
 
     conn = _get_conn()
+
+    logger.debug(
+        'get_territorial_codes: level=%r name=%r region=%r province=%r capoluogo=%r',
+        level, name, region, province, capoluogo,
+    )
 
     try:
         # --- Name search (no other filters) ---
@@ -164,9 +191,13 @@ async def handle_get_territorial_codes(arguments: dict[str, Any]) -> list[TextCo
         # Apply parent-based filters in Python (simpler than complex SQL joins)
         result = []
         for r in all_rows:
-            if province_codes_filter is not None and r['level'] == 'comune':
-                if r.get('parent_code') not in province_codes_filter:
-                    continue
+            if province_codes_filter is not None:
+                if r['level'] == 'comune':
+                    if r.get('parent_code') not in province_codes_filter:
+                        continue
+                elif r['level'] == 'provincia':
+                    if r.get('code') not in province_codes_filter:
+                        continue
             if province_code_filter is not None and r['level'] == 'comune':
                 if r.get('parent_code') != province_code_filter:
                     continue
