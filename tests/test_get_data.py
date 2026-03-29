@@ -1,8 +1,8 @@
 """Tests for get_data time period filtering (ISTAT endPeriod+1 workaround)."""
 
-import pytest
-
 from unittest.mock import patch
+
+import pytest
 
 from istat_mcp_server.tools.get_data import _build_curl_info, _determine_default_periods, _parse_period, filter_tsv_by_time_period
 
