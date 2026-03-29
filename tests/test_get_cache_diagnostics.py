@@ -1,7 +1,7 @@
 """Tests for get_cache_diagnostics tool handler."""
 
+import asyncio
 import json
-import time
 from unittest.mock import patch
 
 import diskcache
@@ -48,12 +48,12 @@ async def test_get_cache_diagnostics_excludes_expired_keys(tmp_path):
     """Expired keys must not appear in persistent_cache_keys."""
     from istat_mcp_server.tools.get_cache_diagnostics import get_cache_diagnostics_handler
 
-    # Pre-populate cache with a key that expires in 1 second
+    # Pre-populate cache with a key that expires in 50 ms
     with diskcache.Cache(str(tmp_path)) as cache:
-        cache.set('expired_key', 'value', expire=1)
+        cache.set('expired_key', 'value', expire=0.05)
         cache.set('valid_key', 'value', expire=3600)
 
-    time.sleep(1.5)
+    await asyncio.sleep(0.1)
 
     with patch('istat_mcp_server.server.PERSISTENT_CACHE_DIR', str(tmp_path)):
         result = await get_cache_diagnostics_handler()
