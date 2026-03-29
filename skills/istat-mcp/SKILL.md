@@ -57,10 +57,12 @@ Use this tool **before querying data** whenever the user mentions a specific pla
 **Examples:**
 
 ```json
-{"level": "regione"}
-{"name": "Milano"}
-{"level": "provincia", "region": "Sicilia"}
-{"level": "comune", "region": "Lombardia", "capoluogo": true}
+[
+  { "level": "regione" },
+  { "name": "Milano" },
+  { "level": "provincia", "region": "Sicilia" },
+  { "level": "comune", "region": "Lombardia", "capoluogo": true }
+]
 ```
 
 The tool contains 9,142 entries with the full Italian territorial hierarchy (italia → ripartizione → regione → provincia → comune) and parent-child relationships. It also flags capoluoghi di provincia and di regione.
