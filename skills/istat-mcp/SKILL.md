@@ -5,6 +5,8 @@ description: >
   Use this skill whenever working with ISTAT data, SDMX dataflows, Italian statistics,
   regional/provincial data, unemployment, population, GDP, agriculture, or any other
   ISTAT dataset. Guides the discover -> constraints -> data workflow step by step.
+  Also supports URL-only mode: generates download URLs without fetching data,
+  keeping the LLM context lightweight. Use when the user asks for a download link/URL.
 license: MIT
 compatibility: Requires the istat MCP server to be running (provides 8 tools for ISTAT SDMX API access).
 metadata:
@@ -25,6 +27,10 @@ If the query targets a specific territory (region, province, municipality), **st
 3. **Fetch data** with `get_data` using the codes from steps 0 and 2
 
 Skip step 0 only when the query is about Italy as a whole (`REF_AREA: IT`).
+
+### URL-only mode
+
+If the user asks for a **download URL/link** instead of the data itself, follow steps 0–2 as above, then **skip `get_data`** and build the URL directly. See [Generate Download URL](#generate-download-url-skip-get_data) for the full workflow.
 
 ## Available Tools
 
@@ -264,6 +270,97 @@ Analyze employment in Italian manufacturing sectors from 2020 to 2023.
   "detail": "full"
 }
 ```
+
+---
+
+## Generate Download URL (skip get_data)
+
+When the user asks for a **download URL**, a **link to the data**, or says "dammi l'URL per scaricare…", **do NOT call `get_data`**. Instead, build the URL yourself from the constraints metadata. This avoids dumping large datasets into the conversation context.
+
+### When to use this mode
+
+- User says "URL", "link", "scarica", "download" or similar
+- User explicitly does not want data displayed, just a way to get it
+- The goal is to hand off the download to the user (browser, curl, DuckDB, script)
+
+### Workflow
+
+Follow steps 0–2 of the standard workflow (resolve territory → discover dataflow → get constraints), then:
+
+**Step 3 (URL-only): Build the URL from constraints**
+
+Use the dimension order and codes from `get_constraints` to construct the SDMX URL.
+
+**URL pattern:**
+
+```
+https://esploradati.istat.it/SDMXWS/rest/data/{dataflow_id}/{dim1.dim2.dim3...}/ALL/?startPeriod={start}&endPeriod={end}&format=csv
+```
+
+**Rules for building the dimension path:**
+
+- Dimensions must appear in the exact order from `get_constraints`
+- Filtered dimension: codes joined with `+` (e.g., `ITC1+ITC2+ITC3`)
+- Unfiltered dimension (all values): leave empty (just the `.` separator)
+- Every dimension must be represented, even if empty
+
+**Example: unemployment rate by region, last 5 years**
+
+After `get_constraints` on dataflow `151_914`, the dimension order is:
+`FREQ.REF_AREA.DATA_TYPE.SEX.AGE.EDU_LEV_HIGHEST.CITIZENSHIP.DURATION_UNEMPLOYMENT`
+
+Build the path:
+
+| Dimension | User intent | Filter |
+|-----------|-------------|--------|
+| FREQ | annual | `A` |
+| REF_AREA | all 21 regions | `ITC1+ITC2+ITC3+ITC4+ITD1+ITD2+ITD3+ITD4+ITD5+ITE1+ITE2+ITE3+ITE4+ITF1+ITF2+ITF3+ITF4+ITF5+ITF6+ITG1+ITG2` |
+| DATA_TYPE | unemployment rate | `UNEM_R` |
+| SEX | total | `9` |
+| AGE | 15-64 | `Y15-64` |
+| EDU_LEV_HIGHEST | total | `99` |
+| CITIZENSHIP | total | `TOTAL` |
+| DURATION_UNEMPLOYMENT | total | `TOTAL` |
+
+Resulting URL:
+
+```
+https://esploradati.istat.it/SDMXWS/rest/data/151_914/A.ITC1+ITC2+ITC3+ITC4+ITD1+ITD2+ITD3+ITD4+ITD5+ITE1+ITE2+ITE3+ITE4+ITF1+ITF2+ITF3+ITF4+ITF5+ITF6+ITG1+ITG2.UNEM_R.9.Y15-64.99.TOTAL.TOTAL/ALL/?startPeriod=2021&endPeriod=2026&format=csv
+```
+
+### Output format
+
+Respond with:
+
+1. **CSV URL** — ready to open in browser or use with curl/DuckDB
+2. **curl command** — `curl "URL"` for terminal download
+3. **Query summary** — dataflow name, dimensions used, period, any choices made
+4. **Warnings** — if a requested breakdown doesn't exist, explain what was used instead
+
+**Example response:**
+
+```
+URL CSV (apri nel browser o scarica con curl):
+https://esploradati.istat.it/SDMXWS/rest/data/151_914/A.ITC1+ITC2+...TOTAL/ALL/?startPeriod=2021&endPeriod=2026&format=csv
+
+curl:
+curl "https://esploradati.istat.it/SDMXWS/rest/data/151_914/A.ITC1+ITC2+...TOTAL/ALL/?startPeriod=2021&endPeriod=2026&format=csv"
+
+Dettagli:
+- Dataflow: 151_914 — Tasso di disoccupazione
+- Frequenza: annuale
+- Territorio: tutte le 21 regioni italiane
+- Fascia d'età: 15-64
+- Sesso: totale
+- Periodo: 2021-2026
+```
+
+### Tips
+
+- For **DuckDB** users, suggest: `SELECT * FROM read_csv_auto('URL');`
+- If the dimension path becomes very long, the URL is still valid — SDMX handles long query strings
+- Always validate codes against `get_constraints` output before building the URL
+- Use `get_territorial_codes` to resolve territory names to REF_AREA codes — never guess
 
 ---
 
