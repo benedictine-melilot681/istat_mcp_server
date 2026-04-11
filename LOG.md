@@ -1,5 +1,11 @@
 # Log
 
+## 2026-04-11
+
+- Add Astro site in `site/` — single page EN (`/`) and IT (`/it`), design system from `DESIGN.md`
+- Add GitHub Actions workflow `deploy-site.yml` (trigger on `site/**`, uses `withastro/action@v3`)
+- Local build verified: 2 pages generated
+
 ## 2026-04-08
 
 - Add `tests/test_get_concepts.py` — 10 unit tests for `handle_get_concepts` tool (subprocess mocking pattern)

@@ -1,0 +1,59 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  lang: 'en' | 'it';
+}
+
+const { title, description, lang } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const homeHref = lang === 'it' ? `${base}/it` : `${base}/`;
+const otherLangHref = lang === 'it' ? `${base}/` : `${base}/it`;
+const otherLangLabel = lang === 'it' ? 'EN' : 'IT';
+const currentLangLabel = lang === 'it' ? 'IT' : 'EN';
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="inner">
+        <a href={homeHref} class="brand">
+          <span class="brand-dot"></span>
+          ISTAT MCP Server
+        </a>
+        <nav class="nav-links">
+          <a href="https://github.com/ondata/istat_mcp_server" target="_blank" rel="noopener">GitHub</a>
+          <div class="lang-switch">
+            <a href={homeHref} class="active">{currentLangLabel}</a>
+            <a href={otherLangHref}>{otherLangLabel}</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container inner">
+        <div>
+          Made by <a href="https://ondata.it" target="_blank" rel="noopener">onData</a> · MIT License
+        </div>
+        <div>
+          <a href="https://github.com/ondata/istat_mcp_server" target="_blank" rel="noopener">Source on GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

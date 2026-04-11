@@ -1,0 +1,130 @@
+---
+import Base from '../layouts/Base.astro';
+
+const tools = [
+  { code: 'discover_dataflows', icon: '🔎', desc: 'Trova i dataset ISTAT per parole chiave, con filtri intelligenti.' },
+  { code: 'get_constraints', icon: '🧭', desc: 'Una sola chiamata: tutte le dimensioni con valori validi ed etichette.' },
+  { code: 'get_structure', icon: '🧱', desc: 'Ispeziona dimensioni e codelist di una datastructure.' },
+  { code: 'get_codelist_description', icon: '🏷️', desc: 'Etichette leggibili in italiano o inglese.' },
+  { code: 'get_concepts', icon: '💡', desc: 'Descrive un concetto ISTAT a partire dal suo identificativo.' },
+  { code: 'get_data', icon: '📊', desc: 'Scarica i dati statistici come tabella TSV compatta.' },
+  { code: 'get_territorial_codes', icon: '🗺️', desc: 'Risolve i codici REF_AREA: Italia, regioni, province, comuni.' },
+  { code: 'get_cache_diagnostics', icon: '⚙️', desc: 'Ispeziona lo stato della cache per debug e osservabilità.' },
+];
+---
+
+<Base
+  title="ISTAT MCP Server — Statistiche italiane in Claude Desktop"
+  description="Un server Model Context Protocol che porta i dati statistici ufficiali ISTAT dentro Claude Desktop."
+  lang="it"
+>
+  <section class="hero container">
+    <span class="eyebrow">Model Context Protocol · Open Source</span>
+    <h1>Le statistiche italiane,<br />a un prompt di distanza.</h1>
+    <p class="lede">
+      Un server MCP che collega Claude Desktop a ISTAT — l'Istituto Nazionale di
+      Statistica — per scoprire, interrogare e analizzare i dati ufficiali parlando
+      in linguaggio naturale.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/ondata/istat_mcp_server" target="_blank" rel="noopener">
+        Vedi su GitHub
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/ondata/istat_mcp_server/blob/main/README_IT.md" target="_blank" rel="noopener">
+        Guida all'installazione
+      </a>
+    </div>
+    <div class="badges">
+      <a href="https://deepwiki.com/ondata/istat_mcp_server" target="_blank" rel="noopener">
+        <img src="https://deepwiki.com/badge.svg" alt="DeepWiki" />
+      </a>
+      <a href="https://ondata.substack.com/" target="_blank" rel="noopener">
+        <img src="https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack" alt="Newsletter" />
+      </a>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>Perché esiste</h2>
+      <p>
+        ISTAT pubblica migliaia di dataset attraverso un'API SDMX potente ma complessa.
+        Questo server nasconde la complessità, mette cache in modo aggressivo e offre
+        a Claude esattamente la superficie di strumenti che gli serve per essere utile
+        — niente di più, niente di meno.
+      </p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">⚡</div>
+        <h3>Cache a due livelli</h3>
+        <p>In memoria e su disco persistente. Una volta esplorato un dataflow, ogni domanda successiva è istantanea.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Rispetta i rate limit</h3>
+        <p>Coda automatica delle richieste: le conversazioni non si interrompono per un errore inatteso.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🌍</div>
+        <h3>Italiano o inglese</h3>
+        <p>Tutte le etichette e le descrizioni sono disponibili in entrambe le lingue, come le pubblica ISTAT.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧩</div>
+        <h3>Drop-in per Claude Desktop</h3>
+        <p>Poche righe in <code>claude_desktop_config.json</code> e ISTAT diventa uno strumento di prima classe.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>Otto strumenti focalizzati</h2>
+      <p>Ogni tool ha una sola responsabilità. Componili per passare dalla curiosità a una tabella di dati pronta da leggere.</p>
+    </div>
+    <div class="grid">
+      {tools.map((t) => (
+        <div class="card">
+          <div class="icon">{t.icon}</div>
+          <code>{t.code}</code>
+          <p>{t.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>Il flusso in tre passi</h2>
+      <p>Un percorso consigliato che trasforma una domanda vaga in numeri reali.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Scopri</h3>
+        <p>Fai una domanda a Claude. Chiama <code>discover_dataflows</code> e propone i dataset più rilevanti.</p>
+      </div>
+      <div class="step">
+        <h3>Ispeziona</h3>
+        <p>Una sola chiamata a <code>get_constraints</code> restituisce tutte le dimensioni con valori validi ed etichettati.</p>
+      </div>
+      <div class="step">
+        <h3>Scarica</h3>
+        <p><code>get_data</code> estrae la slice esatta come tabella TSV compatta, pronta per l'analisi.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="install">
+      <h2>Parti in due minuti</h2>
+      <p>Python 3.11+ e <a href="https://docs.astral.sh/uv/" style="color:#ff9aae">uv</a> consigliati. Istruzioni complete — e uno script PowerShell per Windows — sono nel repository.</p>
+      <pre class="code">git clone https://github.com/ondata/istat_mcp_server.git
+cd istat_mcp_server
+uv sync</pre>
+      <a class="btn btn-secondary" href="https://github.com/ondata/istat_mcp_server/blob/main/README_IT.md" target="_blank" rel="noopener">
+        Guida completa
+      </a>
+    </div>
+  </section>
+</Base>
