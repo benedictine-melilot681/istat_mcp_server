@@ -1,0 +1,129 @@
+---
+import Base from '../layouts/Base.astro';
+
+const tools = [
+  { code: 'discover_dataflows', icon: '🔎', desc: 'Find ISTAT datasets by keywords, with smart filtering.' },
+  { code: 'get_constraints', icon: '🧭', desc: 'One call returns every dimension with valid values and labels.' },
+  { code: 'get_structure', icon: '🧱', desc: 'Inspect dimensions and codelists for any datastructure.' },
+  { code: 'get_codelist_description', icon: '🏷️', desc: 'Human-readable labels in Italian or English.' },
+  { code: 'get_concepts', icon: '💡', desc: 'Describe an ISTAT concept by its identifier.' },
+  { code: 'get_data', icon: '📊', desc: 'Fetch actual statistical data as a compact TSV table.' },
+  { code: 'get_territorial_codes', icon: '🗺️', desc: 'Resolve REF_AREA codes: Italy, regions, provinces, municipalities.' },
+  { code: 'get_cache_diagnostics', icon: '⚙️', desc: 'Inspect cache state for debugging and observability.' },
+];
+---
+
+<Base
+  title="ISTAT MCP Server — Italian statistics for your AI"
+  description="A Model Context Protocol server that brings official Italian statistical data from ISTAT into your AI assistant."
+  lang="en"
+>
+  <section class="hero container">
+    <span class="eyebrow">Model Context Protocol · Open Source</span>
+    <h1>Italian statistics,<br />one prompt away.</h1>
+    <p class="lede">
+      An MCP server that connects your AI assistant to ISTAT — the Italian National
+      Institute of Statistics — so you can discover, query and analyse official data
+      with natural language.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/ondata/istat_mcp_server" target="_blank" rel="noopener">
+        View on GitHub
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/ondata/istat_mcp_server#installation" target="_blank" rel="noopener">
+        Installation guide
+      </a>
+    </div>
+    <div class="badges">
+      <a href="https://deepwiki.com/ondata/istat_mcp_server" target="_blank" rel="noopener">
+        <img src="https://deepwiki.com/badge.svg" alt="DeepWiki" />
+      </a>
+      <a href="https://ondata.substack.com/" target="_blank" rel="noopener">
+        <img src="https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack" alt="Newsletter" />
+      </a>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>Why it exists</h2>
+      <p>
+        ISTAT publishes thousands of datasets through a powerful but complex SDMX API.
+        This server hides the complexity, caches results aggressively and gives Claude
+        exactly the surface it needs to be useful — no more, no less.
+      </p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">⚡</div>
+        <h3>Two-layer cache</h3>
+        <p>In-memory and persistent disk cache. Once a dataflow is explored, every follow-up question is instant.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Rate limit friendly</h3>
+        <p>Automatic queuing respects ISTAT limits so your conversations never hit an unexpected error.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🌍</div>
+        <h3>Italian or English</h3>
+        <p>All labels and descriptions are available in both languages, matching the way ISTAT publishes them.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧩</div>
+        <h3>Works with any MCP client</h3>
+        <p>A few lines of config and ISTAT becomes a first-class tool for the AI assistant you already use.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>Eight focused tools</h2>
+      <p>Each tool has a single responsibility — combine them to move from curiosity to a ready-to-read data table.</p>
+    </div>
+    <div class="grid">
+      {tools.map((t) => (
+        <div class="card">
+          <div class="icon">{t.icon}</div>
+          <code>{t.code}</code>
+          <p>{t.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="section-head">
+      <h2>The three-step workflow</h2>
+      <p>A recommended path that turns a vague question into real numbers.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Discover</h3>
+        <p>Ask your AI a question. It calls <code>discover_dataflows</code> and proposes the most relevant datasets.</p>
+      </div>
+      <div class="step">
+        <h3>Inspect</h3>
+        <p>A single <code>get_constraints</code> call returns all dimensions with valid, labelled values.</p>
+      </div>
+      <div class="step">
+        <h3>Fetch</h3>
+        <p><code>get_data</code> pulls the exact slice as a compact TSV table, ready for analysis.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block container">
+    <div class="install">
+      <h2>Get started in two minutes</h2>
+      <p>Python 3.11+ and <a href="https://docs.astral.sh/uv/" style="color:#ff9aae">uv</a> recommended. Full instructions — and a Windows PowerShell helper — live in the repository.</p>
+      <pre class="code">git clone https://github.com/ondata/istat_mcp_server.git
+cd istat_mcp_server
+uv sync</pre>
+      <a class="btn btn-secondary" href="https://github.com/ondata/istat_mcp_server#installation" target="_blank" rel="noopener">
+        Full setup guide
+      </a>
+    </div>
+  </section>
+</Base>
